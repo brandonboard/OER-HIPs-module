@@ -264,10 +264,10 @@
   }
 
   function postText(c) {
-    return "1. Your course and your students\n" + (c.q1 || "") +
-      "\n\n2. What you found\n" + (c.q2 || "") +
-      "\n\n3. Your level\n" + (c.q3 || "") +
-      "\n\n4. One next step\n" + (c.q4 || "");
+    return "1. Which course are you thinking about, and where do students struggle most?\n" + (c.q1 || "") +
+      "\n\n2. What open resource did you find, how did it hold up, and what does its license allow?\n" + (c.q2 || "") +
+      "\n\n3. Which level of engagement describes this course today, and what would you like to try next?\n" + (c.q3 || "") +
+      "\n\n4. What's one specific next step, and what support would help?\n" + (c.q4 || "");
   }
 
   function download(text) {
@@ -340,10 +340,10 @@
 
     var c = compile();
     var Q = [
-      { id: "q1", title: "Your course and your students", from: "What is OER? and Why OER Is High-Impact" },
-      { id: "q2", title: "What you found", from: "What is OER? and Find, Evaluate and Use OER" },
-      { id: "q3", title: "Your level", from: "Levels of Engagement" },
-      { id: "q4", title: "One next step", from: null, hint: "What's one specific thing you'll do this term or next, and what support would help?" }
+      { id: "q1", title: "Which course are you thinking about, and where do students struggle most?", from: "What is OER? and Why OER Is High-Impact" },
+      { id: "q2", title: "What open resource did you find, how did it hold up, and what does its license allow?", from: "What is OER? and Find, Evaluate and Use OER" },
+      { id: "q3", title: "Which level of engagement describes this course today, and what would you like to try next?", from: "Levels of Engagement" },
+      { id: "q4", title: "What's one specific next step, and what support would help?", from: null }
     ];
     var boxes = {};
     Q.forEach(function (q, i) {
