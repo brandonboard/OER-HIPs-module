@@ -171,7 +171,8 @@
       fields: [
         { id: "evaluation", type: "textarea", label: "How did your resource hold up against the evaluation questions?", hint: "Coverage, accuracy, clarity, accessibility, inclusiveness, support materials." },
         { id: "license", type: "select", label: "What license does it use?", options: LICENSES },
-        { id: "use", type: "radio", label: "Could you…", options: ["Adopt it as-is", "Adapt it", "Neither", "Not sure yet"] }
+        { id: "use", type: "radio", label: "Could you…", options: ["Adopt it as-is", "Adapt it", "Neither", "Not sure yet"] },
+        { id: "attribution", type: "textarea", label: "Draft an attribution for your resource.", hint: "Use TASL: Title, Author, Source, License. For example: \"Psychology 2e\" by OpenStax, openstax.org, licensed under CC BY 4.0." }
       ]
     }
   };
@@ -254,6 +255,7 @@
     if (v("resource")) a2parts.push("I found " + v("resource") + (v("fit") ? " (could replace: " + v("fit").toLowerCase() + ")" : "") + ".");
     if (v("evaluation")) a2parts.push(v("evaluation"));
     if (v("license")) a2parts.push("License: " + v("license") + (v("use") ? ". I could " + v("use").toLowerCase().replace(/^not sure yet$/, "not decide yet") : "") + ".");
+    if (v("attribution")) a2parts.push("Attribution: " + v("attribution"));
     var a3 = [v("level") ? "Today: " + v("level") + "." : "", v("next") ? "Next: " + v("next") : ""].filter(Boolean).join(" ");
     return {
       q1: data.q1 !== undefined ? data.q1 : a1,
