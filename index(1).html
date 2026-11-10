@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OER Planner</title>
+<style>
+  :root {
+    --red: #b31b34;
+    --grey: #f2f0ed;
+    --line: #ccc2b6;
+    --gold: #fdb913;
+    --gold-tint: #fff4dc;
+    --text: #1a1a1a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 4px;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    color: var(--text);
+    background: #ffffff;
+  }
+  .card {
+    border: 2px solid var(--red);
+    border-radius: 8px;
+    padding: 16px 20px;
+    background: #ffffff;
+  }
+  .eyebrow {
+    margin: 0 0 4px 0;
+    font-size: 0.8rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--red);
+    font-weight: bold;
+  }
+  h1 {
+    margin: 0 0 12px 0;
+    font-size: 1.15rem;
+    color: var(--red);
+  }
+  .field { margin: 0 0 14px 0; }
+  label, legend {
+    display: block;
+    font-weight: bold;
+    margin: 0 0 4px 0;
+  }
+  .hint { display: block; font-weight: normal; font-size: 0.9rem; color: #444; margin-top: 2px; }
+  input[type="text"], textarea, select {
+    width: 100%;
+    font: inherit;
+    padding: 8px 10px;
+    border: 1px solid #8a8178;
+    border-radius: 6px;
+    background: #ffffff;
+    color: var(--text);
+  }
+  textarea { min-height: 70px; resize: vertical; }
+  input:focus, textarea:focus, select:focus, button:focus {
+    outline: 3px solid var(--gold);
+    outline-offset: 1px;
+  }
+  fieldset { border: 0; padding: 0; margin: 0 0 14px 0; }
+  .choices { display: flex; flex-wrap: wrap; gap: 6px 16px; }
+  .choices label { display: inline-flex; align-items: center; gap: 6px; font-weight: normal; margin: 0; }
+  .status {
+    font-size: 0.85rem;
+    color: #444;
+    min-height: 1.2em;
+    margin: 0;
+  }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+  button {
+    font: inherit;
+    font-weight: bold;
+    border-radius: 6px;
+    padding: 8px 16px;
+    cursor: pointer;
+  }
+  .btn-primary { background: var(--red); color: #ffffff; border: 2px solid var(--red); }
+  .btn-secondary { background: #ffffff; color: var(--red); border: 2px solid var(--red); }
+  .btn-link { background: none; border: 0; color: #444; text-decoration: underline; padding: 4px; font-weight: normal; font-size: 0.85rem; }
+  .note {
+    background: var(--gold-tint);
+    border-left: 5px solid var(--gold);
+    border-radius: 0 6px 6px 0;
+    padding: 8px 12px;
+    font-size: 0.9rem;
+    margin: 0 0 12px 0;
+  }
+  .q {
+    background: var(--grey);
+    border-radius: 6px;
+    padding: 12px 14px;
+    margin: 0 0 12px 0;
+  }
+  .q h2 { margin: 0 0 6px 0; font-size: 1rem; }
+  .q .num {
+    display: inline-block; width: 26px; height: 26px; line-height: 26px; border-radius: 50%;
+    background: var(--red); color: #ffffff; text-align: center; font-size: 0.9rem; margin-right: 6px;
+  }
+  .missing { font-size: 0.85rem; color: #6b2a2a; margin: 4px 0 0 0; }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+<main class="card" id="app" aria-live="polite">
+  <p>Loading…</p>
+</main>
+
+<script>
+(function () {
+  "use strict";
+
+  var STORE_KEY = "wcc-oer-hip-planner-v1";
+
+  // ---------- storage (wrapped: may be blocked in some browsers) ----------
+  var storageOK = true;
+  function load() {
+    try {
+      var raw = window.localStorage.getItem(STORE_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch (e) { storageOK = false; return {}; }
+  }
+  function save(data) {
+    try {
+      window.localStorage.setItem(STORE_KEY, JSON.stringify(data));
+      return true;
+    } catch (e) { storageOK = false; return false; }
+  }
+  var data = load();
+  // probe write access
+  try { window.localStorage.setItem(STORE_KEY + "-probe", "1"); window.localStorage.removeItem(STORE_KEY + "-probe"); }
+  catch (e) { storageOK = false; }
+
+  // ---------- step definitions ----------
+  var LEVELS = ["Not using OER yet", "Level 1: Start small", "Level 2: Adopt", "Level 3: Adapt and remix", "Level 4: Create", "Level 5: Open pedagogy"];
+  var LICENSES = ["Not sure yet", "CC BY", "CC BY-SA", "CC BY-NC", "CC BY-NC-SA", "CC BY-ND", "CC BY-NC-ND", "CC0 / Public Domain", "All rights reserved (not OER)"];
+
+  var STEPS = {
+    explore: {
+      page: "What is OER?",
+      title: "Baby Steps: note what you found",
+      fields: [
+        { id: "course", type: "text", label: "Which course are you thinking about?", hint: "For example: PSY100, Introduction to Psychology" },
+        { id: "resource", type: "text", label: "What open resource did you find?", hint: "Title and where you found it. \"Still looking\" is a fine answer." },
+        { id: "fit", type: "radio", label: "Could it replace…", options: ["A chapter or reading", "The whole textbook", "Not sure yet"] }
+      ]
+    },
+    struggle: {
+      page: "Why OER Is High-Impact",
+      title: "Reflect",
+      fields: [
+        { id: "struggle", type: "textarea", label: "Where do students struggle most in this course, and would changing the materials help?", hint: "Think about cost, access, engagement or content." }
+      ]
+    },
+    level: {
+      page: "Levels of Engagement",
+      title: "Where are you now?",
+      fields: [
+        { id: "level", type: "select", label: "Which level best describes this course today?", options: LEVELS },
+        { id: "next", type: "textarea", label: "What would you like to try next?", hint: "Remember, you don't have to go in order, and you can combine levels." }
+      ]
+    },
+    evaluate: {
+      page: "Find, Evaluate and Use OER",
+      title: "Try this: evaluate your resource",
+      fields: [
+        { id: "evaluation", type: "textarea", label: "How did your resource hold up against the evaluation questions?", hint: "Coverage, accuracy, clarity, accessibility, inclusiveness, support materials." },
+        { id: "license", type: "select", label: "What license does it use?", options: LICENSES },
+        { id: "use", type: "radio", label: "Could you…", options: ["Adopt it as-is", "Adapt it", "Neither", "Not sure yet"] }
+      ]
+    }
+  };
+
+  // ---------- helpers ----------
+  function el(tag, attrs, children) {
+    var n = document.createElement(tag);
+    if (attrs) Object.keys(attrs).forEach(function (k) {
+      if (k === "text") n.textContent = attrs[k];
+      else if (k === "class") n.className = attrs[k];
+      else n.setAttribute(k, attrs[k]);
+    });
+    (children || []).forEach(function (c) { if (c) n.appendChild(c); });
+    return n;
+  }
+  var saveTimer = null;
+  function setStatus(msg) {
+    var s = document.getElementById("status");
+    if (s) s.textContent = msg;
+  }
+  function update(id, value) {
+    data[id] = value;
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(function () {
+      setStatus(save(data) ? "Saved in this browser." : "Couldn't save in this browser. Use \"Download my answers\" to keep a copy.");
+    }, 300);
+  }
+  function v(id) { return (data[id] || "").trim(); }
+
+  function storageNote() {
+    if (storageOK) return null;
+    return el("p", { class: "note", text: "Your browser is blocking saved answers here, so they won't carry over between pages. You can still type your answers, then use \"Download my answers\" to keep them." });
+  }
+
+  function renderField(f) {
+    var wrap, input;
+    var fid = "f-" + f.id;
+    if (f.type === "radio") {
+      wrap = el("fieldset", { class: "field" });
+      wrap.appendChild(el("legend", { text: f.label }));
+      var box = el("div", { class: "choices" });
+      f.options.forEach(function (opt, i) {
+        var rid = fid + "-" + i;
+        var r = el("input", { type: "radio", name: fid, id: rid, value: opt });
+        if (data[f.id] === opt) r.checked = true;
+        r.addEventListener("change", function () { update(f.id, opt); });
+        box.appendChild(el("label", { for: rid }, [r, document.createTextNode(opt)]));
+      });
+      wrap.appendChild(box);
+      return wrap;
+    }
+    wrap = el("div", { class: "field" });
+    var lab = el("label", { for: fid, text: f.label });
+    if (f.hint) lab.appendChild(el("span", { class: "hint", id: fid + "-hint", text: f.hint }));
+    wrap.appendChild(lab);
+    if (f.type === "select") {
+      input = el("select", { id: fid });
+      input.appendChild(el("option", { value: "", text: "Choose one" }));
+      f.options.forEach(function (opt) {
+        var o = el("option", { value: opt, text: opt });
+        if (data[f.id] === opt) o.selected = true;
+        input.appendChild(o);
+      });
+      input.addEventListener("change", function () { update(f.id, input.value); });
+    } else {
+      input = el(f.type === "textarea" ? "textarea" : "input", { id: fid });
+      if (f.type === "text") input.setAttribute("type", "text");
+      if (f.hint) input.setAttribute("aria-describedby", fid + "-hint");
+      input.value = data[f.id] || "";
+      input.addEventListener("input", function () { update(f.id, input.value); });
+    }
+    wrap.appendChild(input);
+    return wrap;
+  }
+
+  // ---------- compile the Try It post ----------
+  function compile() {
+    var a1 = [v("course"), v("struggle")].filter(Boolean).join(". ").replace(/\.\./g, ".");
+    var a2parts = [];
+    if (v("resource")) a2parts.push("I found " + v("resource") + (v("fit") ? " (could replace: " + v("fit").toLowerCase() + ")" : "") + ".");
+    if (v("evaluation")) a2parts.push(v("evaluation"));
+    if (v("license")) a2parts.push("License: " + v("license") + (v("use") ? ". I could " + v("use").toLowerCase().replace(/^not sure yet$/, "not decide yet") : "") + ".");
+    var a3 = [v("level") ? "Today: " + v("level") + "." : "", v("next") ? "Next: " + v("next") : ""].filter(Boolean).join(" ");
+    return {
+      q1: data.q1 !== undefined ? data.q1 : a1,
+      q2: data.q2 !== undefined ? data.q2 : a2parts.join(" "),
+      q3: data.q3 !== undefined ? data.q3 : a3,
+      q4: data.q4 || ""
+    };
+  }
+
+  function postText(c) {
+    return "1. Your course and your students\n" + (c.q1 || "") +
+      "\n\n2. What you found\n" + (c.q2 || "") +
+      "\n\n3. Your level\n" + (c.q3 || "") +
+      "\n\n4. One next step\n" + (c.q4 || "");
+  }
+
+  function download(text) {
+    try {
+      var blob = new Blob([text], { type: "text/plain" });
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "my-oer-plan.txt";
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+    } catch (e) { setStatus("Download isn't available here. Copy the text instead."); }
+  }
+
+  function allAnswersText() {
+    var lines = [];
+    Object.keys(STEPS).forEach(function (k) {
+      var s = STEPS[k];
+      lines.push("== " + s.page + " ==");
+      s.fields.forEach(function (f) { lines.push(f.label + "\n" + (v(f.id) || "(no answer yet)")); });
+      lines.push("");
+    });
+    return lines.join("\n");
+  }
+
+  function footer(extraButtons) {
+    var row = el("div", { class: "row" });
+    row.appendChild(el("p", { class: "status", id: "status", role: "status", text: storageOK ? "Your answers save automatically in this browser." : "" }));
+    var btns = el("div", { class: "row" });
+    (extraButtons || []).forEach(function (b) { btns.appendChild(b); });
+    var dl = el("button", { type: "button", class: "btn-link", text: "Download my answers" });
+    dl.addEventListener("click", function () { download(step === "plan" ? postText(currentCompiled()) : allAnswersText()); });
+    btns.appendChild(dl);
+    var clr = el("button", { type: "button", class: "btn-link", text: "Clear all answers" });
+    clr.addEventListener("click", function () {
+      if (window.confirm("Clear all of your answers in this planner? This can't be undone.")) {
+        data = {}; save(data); render();
+        setStatus("All answers cleared.");
+      }
+    });
+    btns.appendChild(clr);
+    row.appendChild(btns);
+    return row;
+  }
+
+  // ---------- render ----------
+  var params = new URLSearchParams(window.location.search);
+  var step = params.get("step") || "explore";
+  var app = document.getElementById("app");
+
+  var currentCompiled = function () { return compile(); };
+
+  function render() {
+    app.innerHTML = "";
+    var note = storageNote();
+    if (step === "plan") return renderPlan(note);
+    var s = STEPS[step] || STEPS.explore;
+    app.appendChild(el("p", { class: "eyebrow", text: "My OER plan" }));
+    app.appendChild(el("h1", { text: s.title }));
+    if (note) app.appendChild(note);
+    s.fields.forEach(function (f) { app.appendChild(renderField(f)); });
+    app.appendChild(footer());
+  }
+
+  function renderPlan(note) {
+    app.appendChild(el("p", { class: "eyebrow", text: "My OER plan" }));
+    app.appendChild(el("h1", { text: "Your answers so far" }));
+    if (note) app.appendChild(note);
+    app.appendChild(el("p", { text: "We've filled in what you wrote on earlier pages. Edit anything you like, add your next step, then copy it into your discussion reply." }));
+
+    var c = compile();
+    var Q = [
+      { id: "q1", title: "Your course and your students", from: "What is OER? and Why OER Is High-Impact" },
+      { id: "q2", title: "What you found", from: "What is OER? and Find, Evaluate and Use OER" },
+      { id: "q3", title: "Your level", from: "Levels of Engagement" },
+      { id: "q4", title: "One next step", from: null, hint: "What's one specific thing you'll do this term or next, and what support would help?" }
+    ];
+    var boxes = {};
+    Q.forEach(function (q, i) {
+      var fid = "f-" + q.id;
+      var box = el("section", { class: "q", "aria-labelledby": fid + "-h" });
+      var h = el("h2", { id: fid + "-h" });
+      h.appendChild(el("span", { class: "num", "aria-hidden": "true", text: String(i + 1) }));
+      h.appendChild(document.createTextNode(q.title));
+      box.appendChild(h);
+      var lab = el("label", { for: fid, class: "hidden", text: q.title });
+      box.appendChild(lab);
+      if (q.hint) box.appendChild(el("p", { class: "hint", id: fid + "-hint", text: q.hint }));
+      var ta = el("textarea", { id: fid });
+      if (q.hint) ta.setAttribute("aria-describedby", fid + "-hint");
+      ta.value = c[q.id] || "";
+      ta.addEventListener("input", function () { update(q.id, ta.value); });
+      boxes[q.id] = ta;
+      box.appendChild(ta);
+      if (q.from && !c[q.id]) box.appendChild(el("p", { class: "missing", text: "Nothing saved yet. You can answer here, or visit " + q.from + "." }));
+      app.appendChild(box);
+    });
+
+    currentCompiled = function () {
+      return { q1: boxes.q1.value, q2: boxes.q2.value, q3: boxes.q3.value, q4: boxes.q4.value };
+    };
+
+    var copy = el("button", { type: "button", class: "btn-primary", text: "Copy my post" });
+    copy.addEventListener("click", function () {
+      var text = postText(currentCompiled());
+      var done = function () { setStatus("Copied. Paste it into your discussion reply."); };
+      var fallback = function () {
+        var t = el("textarea"); t.value = text; document.body.appendChild(t); t.select();
+        try { document.execCommand("copy"); done(); } catch (e) { setStatus("Copy didn't work here. Select the text and copy it manually."); }
+        t.remove();
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, fallback);
+      } else { fallback(); }
+    });
+    var reset = el("button", { type: "button", class: "btn-secondary", text: "Refill from earlier pages" });
+    reset.addEventListener("click", function () {
+      delete data.q1; delete data.q2; delete data.q3; save(data); render();
+      setStatus("Refilled from your earlier answers.");
+    });
+    app.appendChild(footer([copy, reset]));
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>
