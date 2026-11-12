@@ -104,6 +104,7 @@
   }
   .missing { font-size: 0.85rem; color: #6b2a2a; margin: 4px 0 0 0; }
   .hidden { display: none; }
+  .q-new { margin: 0 0 8px 0; padding: 6px 10px; background: var(--gold-tint); border-left: 4px solid var(--gold); border-radius: 0 6px 6px 0; font-size: 0.9rem; font-weight: bold; }
   .course-line { margin: -4px 0 14px 0; padding: 6px 10px; background: var(--grey); border-radius: 6px; font-size: 0.95rem; }
 </style>
 </head>
@@ -345,14 +346,14 @@
     app.appendChild(el("p", { class: "eyebrow", text: "My OER plan" }));
     app.appendChild(el("h1", { text: "Your answers so far" }));
     if (note) app.appendChild(note);
-    app.appendChild(el("p", { text: "We've filled in what you wrote on earlier pages. Edit anything you like, add your next step, then copy it into your discussion reply." }));
+    app.appendChild(el("p", { text: "Questions 1 to 3 are filled in from what you wrote on earlier pages. Edit anything you like. Question 4 is new: answer it here, then copy your post into your discussion reply." }));
 
     var c = compile();
     var Q = [
       { id: "q1", title: "Which course are you thinking about, and where do students struggle most?", from: "What is OER? and Why OER Is High-Impact" },
       { id: "q2", title: "What open resource did you find, how did it hold up, and what does its license allow?", from: "What is OER? and Find, Evaluate and Use OER" },
       { id: "q3", title: "Which level of engagement describes this course today, and what would you like to try next?", from: "Levels of Engagement" },
-      { id: "q4", title: "What's one specific next step, and what support would help?", from: null }
+      { id: "q4", title: "What's one specific next step, and what support would help?", from: null, hint: "New question: answer this one here. It isn't filled in from earlier pages.", placeholder: "For example: This spring, I'll compare an open textbook with my course outcomes. I'd like help finding case studies." }
     ];
     var boxes = {};
     Q.forEach(function (q, i) {
@@ -364,8 +365,9 @@
       box.appendChild(h);
       var lab = el("label", { for: fid, class: "hidden", text: q.title });
       box.appendChild(lab);
-      if (q.hint) box.appendChild(el("p", { class: "hint", id: fid + "-hint", text: q.hint }));
+      if (q.hint) box.appendChild(el("p", { class: "q-new", id: fid + "-hint", text: q.hint }));
       var ta = el("textarea", { id: fid });
+      if (q.placeholder) ta.setAttribute("placeholder", q.placeholder);
       if (q.hint) ta.setAttribute("aria-describedby", fid + "-hint");
       ta.value = c[q.id] || "";
       ta.addEventListener("input", function () { update(q.id, ta.value); });
