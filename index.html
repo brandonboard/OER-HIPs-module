@@ -104,6 +104,7 @@
   }
   .missing { font-size: 0.85rem; color: #6b2a2a; margin: 4px 0 0 0; }
   .hidden { display: none; }
+  .course-line { margin: -4px 0 14px 0; padding: 6px 10px; background: var(--grey); border-radius: 6px; font-size: 0.95rem; }
 </style>
 </head>
 <body>
@@ -161,8 +162,8 @@
       page: "Levels of Engagement",
       title: "Where are you now?",
       fields: [
-        { id: "level", type: "select", label: "Which level best describes this course today?", options: LEVELS },
-        { id: "next", type: "textarea", label: "What would you like to try next?", hint: "Remember, you don't have to go in order, and you can combine levels." }
+        { id: "level", type: "select", label: "Which level is closest to where this course is today?", options: LEVELS },
+        { id: "next", type: "textarea", label: "What would you like to try next?", hint: "Pick a level that interests you. Its Start here row is a good first step. You don't have to go in order, and you can combine levels." }
       ]
     },
     evaluate: {
@@ -329,6 +330,12 @@
     var s = STEPS[step] || STEPS.explore;
     app.appendChild(el("p", { class: "eyebrow", text: "My OER plan" }));
     app.appendChild(el("h1", { text: s.title }));
+    if (step !== "explore" && v("course")) {
+      var cp = el("p", { class: "course-line" });
+      cp.appendChild(el("strong", { text: "Your course: " }));
+      cp.appendChild(document.createTextNode(v("course")));
+      app.appendChild(cp);
+    }
     if (note) app.appendChild(note);
     s.fields.forEach(function (f) { app.appendChild(renderField(f)); });
     app.appendChild(footer());
